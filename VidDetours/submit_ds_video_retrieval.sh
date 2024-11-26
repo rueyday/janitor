@@ -12,9 +12,7 @@
 
 PROMPT_VERSION=plain
 
-source ~/.conda/envs/detours/bin/activate
-
-~/.conda/envs/detours/bin/deepspeed detours/train/train_xformers.py \
+!deepspeed detours/train/train_xformers.py \
     --model_name_or_path meta-llama/Llama-2-7b-chat-hf \
     --version llama_2 \
     --data_path ${DATA_PATH} \
