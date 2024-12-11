@@ -25,7 +25,6 @@ from transformers.models.bloom.modeling_bloom import (
     CausalLMOutputWithCrossAttentions,
     CrossEntropyLoss,
     _prepare_4d_causal_attention_mask as _expand_mask_bloom,
-    _make_causal_mask as _make_causal_mask_bloom,
     logging,
 )
 from transformers.models.gpt2.modeling_gpt2 import GPT2LMHeadModel
@@ -41,6 +40,30 @@ logger = logging.get_logger(__name__)
 _SUPPORTED_GPT_MODELS = (GPT2LMHeadModel, GPTJForCausalLM, GPTNeoForCausalLM, GPTNeoXForCausalLM)
 CAUSAL_GPT_TYPES = Union[GPT2LMHeadModel, GPTJForCausalLM, GPTNeoForCausalLM, GPTNeoXForCausalLM]
 
+def make_causal_mask(input_shape: Tuple[int, int], device: torch.device, past_key_values_length: int = 0) -> torch.Tensor:
+    """
+    Creates a causal mask for attention, with support for past key-value lengths.
+
+    Args:
+        input_shape (Tuple[int, int]): Shape of the attention input (batch_size, seq_length).
+        device (torch.device): Device to create the tensor on.
+        past_key_values_length (int): Length of past key-value pairs for caching.
+
+    Returns:
+        torch.Tensor: A boolean tensor representing the causal attention mask.
+    """
+    batch_size, seq_length = input_shape
+    total_length = past_key_values_length + seq_length
+
+    # Create a lower triangular mask for causal attention
+    causal_mask = torch.tril(torch.ones((total_length, total_length), device=device, dtype=torch.bool))
+
+    # Expand to batch size
+    causal_mask = causal_mask[-seq_length:, :]  # Only the current seq_length rows
+    causal_mask = causal_mask.unsqueeze(0).expand(batch_size, -1, -1)  # Add batch dimension
+
+    return causal_mask
+    
 def _convert_gpt_causal_lm_to_prefix_lm(model: CAUSAL_GPT_TYPES) -> CAUSAL_GPT_TYPES:
     """Converts a GPT-style Causal LM to a Prefix LM.
 
@@ -143,7 +166,7 @@ def _convert_bloom_causal_lm_to_prefix_lm(model: BloomForCausalLM) -> BloomForCa
         device = attention_mask.device
         (_, src_length) = input_shape
         if src_length > 1:
-            combined_attention_mask = _make_causal_mask_bloom(input_shape, device=device, past_key_values_length=past_key_values_length)
+            combined_attention_mask = make_causal_mask_bloom(input_shape, device=device, past_key_values_length=past_key_values_length)
             if bidirectional_mask is not None:
                 assert attention_mask.shape == bidirectional_mask.shape
                 expanded_bidirectional_mask = _expand_mask_bloom(bidirectional_mask, tgt_length=src_length)
