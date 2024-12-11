@@ -166,7 +166,7 @@ def _convert_bloom_causal_lm_to_prefix_lm(model: BloomForCausalLM) -> BloomForCa
         device = attention_mask.device
         (_, src_length) = input_shape
         if src_length > 1:
-            combined_attention_mask = make_causal_mask_bloom(input_shape, device=device, past_key_values_length=past_key_values_length)
+            combined_attention_mask = make_causal_mask(input_shape, device=device, past_key_values_length=past_key_values_length)
             if bidirectional_mask is not None:
                 assert attention_mask.shape == bidirectional_mask.shape
                 expanded_bidirectional_mask = _expand_mask_bloom(bidirectional_mask, tgt_length=src_length)
