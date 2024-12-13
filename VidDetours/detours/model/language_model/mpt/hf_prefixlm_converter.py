@@ -34,7 +34,7 @@ from transformers.models.gptj.modeling_gptj import GPTJForCausalLM
 from transformers.models.opt.modeling_opt import (
     OPTForCausalLM,
     _prepare_4d_causal_attention_mask as _expand_mask_opt,
-    _make_causal_mask as _make_causal_mask_opt,
+
 )
 logger = logging.get_logger(__name__)
 _SUPPORTED_GPT_MODELS = (GPT2LMHeadModel, GPTJForCausalLM, GPTNeoForCausalLM, GPTNeoXForCausalLM)
