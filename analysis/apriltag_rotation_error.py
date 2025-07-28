@@ -5,8 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from rclpy.serialization import deserialize_message
 from tf2_msgs.msg import TFMessage
+from tf_transformations import euler_from_quaternion  # <-- requires tf-transformations
 
-def extract_data_from_bag(bag_path, tf_topic, target_frame, start_time, end_time, label, ground_truth_z):
+def extract_data_from_bag(bag_path, tf_topic, target_frame, start_time, end_time, label, ground_truth_roll):
     reader = rosbag2_py.SequentialReader()
     storage_options = rosbag2_py.StorageOptions(uri=bag_path, storage_id='sqlite3')
     converter_options = rosbag2_py.ConverterOptions(input_serialization_format='cdr', output_serialization_format='cdr')
@@ -40,12 +41,16 @@ def extract_data_from_bag(bag_path, tf_topic, target_frame, start_time, end_time
                     relative_time = time_sec - first_timestamp
 
                     if start_time <= relative_time <= end_time:
-                        z_measured = transform.transform.translation.z
-                        error = z_measured - ground_truth_z
+                        q = transform.transform.rotation
+                        quaternion = [q.x, q.y, q.z, q.w]
+
+                        # Extract roll (rotation around x-axis)
+                        roll, pitch, yaw = euler_from_quaternion(quaternion)
+                        error = roll - ground_truth_roll  # Assuming ground truth is 0.0 unless otherwise specified
 
                         data.append({
                             'time': relative_time,
-                            'measured': z_measured,
+                            'measured': roll,
                             'error': error,
                             'label': label
                         })
@@ -60,10 +65,10 @@ def main():
     rclpy.init()
 
     bags = [
-        # (bag_path, label, ground_truth_z)
-        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_16_05', 'Bag 1 (1m)', 1.0),
-        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_24_26', 'Bag 2 (2m)', 2.0),
-        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_29_11', 'Bag 3 (3m)', 3.0),
+        # (bag_path, label, ground_truth_roll in radians)
+        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_16_05', 'Bag 1 (1m)', 0.0),
+        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_24_26', 'Bag 2 (2m)', 0.0),
+        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_29_11', 'Bag 3 (3m)', 0.0),
     ]
 
     tf_topic = '/tf'
@@ -73,32 +78,39 @@ def main():
 
     all_data = []
 
-    for path, label, gt_z in bags:
+    for path, label, gt_roll in bags:
         print(f"\n🔍 Processing {label}...")
-        df = extract_data_from_bag(path, tf_topic, target_frame, start_time, end_time, label, gt_z)
+        print(f"Time window: {start_time}s to {end_time}s")
+        df = extract_data_from_bag(path, tf_topic, target_frame, start_time, end_time, label, gt_roll)
         if df.empty:
-            print(f"⚠️ No data extracted from {label}. Skipping.")
+            print(f"No data extracted from {label}. Skipping.")
         else:
-            print(f"✅ Extracted {len(df)} points from {label}")
+            print(f"\nStatistics for {len(df)} measurements (time window {start_time}s to {end_time}s):")
+            print(f"Time range: {df['time'].min():.3f}s to {df['time'].max():.3f}s")
+            print(f"Mean roll: {np.degrees(df['measured'].mean()):.6f}°")
+            print(f"Mean error: {np.degrees(df['error'].mean()):.6f}°")
+            print(f"Std deviation: {np.degrees(df['error'].std()):.6f}°")
+            print(f"Min error: {np.degrees(df['error'].min()):.6f}°")
+            print(f"Max error: {np.degrees(df['error'].max()):.6f}°")
             all_data.append(df)
 
     if not all_data:
-        print("❌ No valid data extracted from any bag.")
+        print("No valid data extracted from any bag.")
         rclpy.shutdown()
         return
 
     combined_df = pd.concat(all_data, ignore_index=True)
 
-    # Plot error
+    # Plot roll error
     plt.figure(figsize=(12, 8))
     for label in combined_df['label'].unique():
         df_label = combined_df[combined_df['label'] == label]
-        plt.plot(df_label['time'], df_label['error'], label=label, alpha=0.7)
+        plt.plot(df_label['time'], np.degrees(df_label['error']), label=label, alpha=0.7)
 
     plt.axhline(0.0, color='black', linestyle='--', alpha=0.5, label='Zero Error')
     plt.xlabel('Time (s)')
-    plt.ylabel('Error (Measured - Ground Truth) [m]')
-    plt.title(f'AprilTag Error Over Time ({start_time}-{end_time}s)')
+    plt.ylabel('Roll Error (degrees)')
+    plt.title(f'AprilTag Rotation (Roll) Error Over Time ({start_time}-{end_time}s)')
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
