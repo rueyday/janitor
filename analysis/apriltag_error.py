@@ -60,10 +60,13 @@ def main():
     rclpy.init()
 
     bags = [
-        # (bag_path, label, ground_truth_z)
-        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_16_05', 'Bag 1 (1m)', 1.0),
-        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_24_26', 'Bag 2 (2m)', 1.98),
-        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_29_11', 'Bag 3 (3m)', 2.96),
+        # (bag_path, label, ground_truth_z)l
+        # for z offset: 0.02, 1, 1,98, 2,96
+        # for y offset: 0.042, 0.092, 0.062
+        # for x offset: 0.044, -0.019, -0.015
+        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_21_41', 'Bag 1 (1m)', 0.99),
+        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_27_34', 'Bag 2 (2m)', 1.98),
+        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_32_25', 'Bag 3 (3m)', 2.97),
     ]
 
     tf_topic = '/tf'

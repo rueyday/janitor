@@ -66,9 +66,9 @@ def main():
 
     bags = [
         # (bag_path, label, ground_truth_roll in radians)
-        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_16_05', 'Bag 1 (1m)', 0.0),
-        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_24_26', 'Bag 2 (2m)', 0.0),
-        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_29_11', 'Bag 3 (3m)', 0.0),
+        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_24_26', 'Bag 2 (0 degrees)', 0.0),
+        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_25_47', 'Bag 2 (30 degrees)', 0.0),
+        ('/home/ruey/ros2_ws/rosbag/apriltag/rosbag2_2025_07_25-15_27_34', 'Bag 2 (60 degrees)', 0.0),
     ]
 
     tf_topic = '/tf'
